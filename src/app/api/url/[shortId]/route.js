@@ -6,7 +6,7 @@ import { authOptions } from '../../auth/[...nextauth]/route';
 // Get a specific URL by its short ID
 export async function GET(request, { params }) {
   try {
-    const { shortId } = params;
+    const { shortId } = await params;
     
     if (!shortId) {
       return NextResponse.json(

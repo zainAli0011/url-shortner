@@ -16,7 +16,7 @@ export async function GET(request, { params }) {
       );
     }
     
-    const { shortId } = params;
+    const { shortId } = await params;
     
     if (!shortId) {
       return NextResponse.json(

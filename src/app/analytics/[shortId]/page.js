@@ -16,7 +16,7 @@ export default async function AnalyticsPage({ params }) {
     redirect(`/login?callbackUrl=/analytics/${params.shortId}`);
   }
   
-  const { shortId } = params;
+  const { shortId } = await params;
   
   return (
     <div className="container py-8 md:py-12">
