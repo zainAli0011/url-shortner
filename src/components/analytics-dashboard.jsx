@@ -280,33 +280,23 @@ export function AnalyticsDashboard({ shortId }) {
             <TabsContent value="map" className="pt-4">
               <Card>
                 <CardHeader>
-                  <CardTitle>Geographical Distribution</CardTitle>
+                  <CardTitle>Exact IP Locations</CardTitle>
                   <CardDescription>
-                    Visual representation of clicks by country
-                    {analytics.locationData && (
-                      <span className="ml-2 text-xs text-muted-foreground">
-                        ({analytics.locationData.length} location points available)
-                      </span>
-                    )}
+                    {analytics.locationData && analytics.locationData.length > 0 
+                      ? `Showing ${analytics.locationData.length} precise location points from IP addresses`
+                      : "No exact location data available yet"
+                    }
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {(Object.keys(analytics.countryStats).length > 0 || (analytics.locationData && analytics.locationData.length > 0)) ? (
-                    <>
-                      {/* Debug information */}
-                      {process.env.NODE_ENV === 'development' && analytics.locationData && (
-                        <div className="mb-2 p-2 bg-muted/20 text-xs rounded overflow-auto max-h-24">
-                          <p>Location Data Debug: {JSON.stringify(analytics.locationData.slice(0, 2))}</p>
-                        </div>
-                      )}
-                      <SimpleMap 
-                        countryStats={analytics.countryStats} 
-                        locationData={analytics.locationData || []} 
-                      />
-                    </>
+                  {analytics.locationData && analytics.locationData.length > 0 ? (
+                    <SimpleMap 
+                      countryStats={{}} 
+                      locationData={analytics.locationData || []} 
+                    />
                   ) : (
                     <div className="flex items-center justify-center h-[400px] bg-muted/20 rounded-md">
-                      <p className="text-muted-foreground">No geographical data available yet</p>
+                      <p className="text-muted-foreground">No exact IP location data available yet</p>
                     </div>
                   )}
                 </CardContent>

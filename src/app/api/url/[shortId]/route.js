@@ -61,7 +61,7 @@ export async function DELETE(request, { params }) {
       );
     }
     
-    const { shortId } = params;
+    const { shortId } = await params;
     
     if (!shortId) {
       return NextResponse.json(
