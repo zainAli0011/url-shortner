@@ -371,7 +371,8 @@ function D3WorldMap({ countryStats, locationData = [], maxClicks }) {
         console.log('Location data available:', locationData.length);
         
         locationData.forEach((location, index) => {
-          if (location.coordinates && location.coordinates.length === 2) {
+          if (location.coordinates && location.coordinates.length === 2 && 
+              location.coordinates[0] !== 0 && location.coordinates[1] !== 0) {
             // Project the coordinates to the map
             const [longitude, latitude] = location.coordinates;
             console.log(`Location ${index}:`, longitude, latitude);
@@ -430,7 +431,7 @@ function D3WorldMap({ countryStats, locationData = [], maxClicks }) {
               console.warn(`Invalid projected position for coordinates: [${longitude}, ${latitude}]`);
             }
           } else {
-            console.warn(`Invalid coordinates format for location ${index}:`, location.coordinates);
+            console.warn(`Invalid or empty coordinates format for location ${index}:`, location.coordinates);
           }
         });
       } else {

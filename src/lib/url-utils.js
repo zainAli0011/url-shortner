@@ -1,117 +1,27 @@
 import { nanoid } from 'nanoid';
 import connectToDatabase from './db';
 import UrlModel from '../models/url';
+import { getGeolocationFromIP } from './ip-lookup';
 
-// Helper function to get geolocation from IP using a public API
+// Helper function to get geolocation from IP 
 async function getGeoFromIP(ip) {
   try {
-    // Skip localhost IPs and private network IPs
-    if (ip === '127.0.0.1' || ip === 'localhost' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.')) {
-      console.log('Local/Private IP detected:', ip);
-      // For development/testing, return some default coordinates 
-      return {
-        country: 'United States',
-        countryCode: 'US',
-        region: 'California',
-        city: 'San Francisco',
-        latitude: 37.7749,
-        longitude: -122.4194,
-      };
-    }
+    // Leverage our dedicated IP lookup service
+    const geoData = await getGeolocationFromIP(ip);
     
-    // For production, to avoid rate limits, we'll use a more conservative approach
-    // We'll only make API calls for IPs we haven't seen before, otherwise use hardcoded values
-    // This is a simplified approach - in a real production app, you'd use a cache or database
-    
-    // Pre-defined locations based on common regions (fallbacks to reduce API calls)
-    const fallbackLocations = {
-      // Some example fallbacks when we can't reliably determine location
-      'default': {
-        country: 'United States',
-        countryCode: 'US',
-        region: 'California',
-        city: 'San Francisco',
-        latitude: 37.7749,
-        longitude: -122.4194
-      },
-      'eu': {
-        country: 'Germany',
-        countryCode: 'DE',
-        region: 'Berlin',
-        city: 'Berlin',
-        latitude: 52.5200,
-        longitude: 13.4050
-      },
-      'asia': {
-        country: 'Japan',
-        countryCode: 'JP',
-        region: 'Tokyo',
-        city: 'Tokyo',
-        latitude: 35.6762,
-        longitude: 139.6503
-      }
-    };
-    
-    console.log(`Attempting geolocation for IP: ${ip}`);
-    
-    try {
-      // Use a free IP geolocation API - but with cautious error handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-      
-      const response = await fetch(`https://ipapi.co/${ip}/json/`, { 
-        signal: controller.signal 
-      });
-      clearTimeout(timeoutId);
-      
-      // Handle rate limiting (429) and other errors gracefully
-      if (!response.ok) {
-        console.warn(`IP geolocation API response status: ${response.status}`);
-        // Return a fallback on error - this ensures we always have dots
-        return fallbackLocations.default;
-      }
-      
-      const data = await response.json();
-      
-      // Check if we got an error response
-      if (data.error) {
-        console.warn('IP geolocation API error:', data.reason || data.error);
-        return fallbackLocations.default;
-      }
-      
-      // Check if coordinates are valid numbers
-      const lat = parseFloat(data.latitude);
-      const lng = parseFloat(data.longitude);
-      
-      if (isNaN(lat) || isNaN(lng)) {
-        console.warn('Invalid coordinates in API response, using fallback');
-        return fallbackLocations.default;
-      }
-      
-      return {
-        country: data.country_name || 'Unknown',
-        countryCode: data.country_code,
-        region: data.region,
-        city: data.city,
-        latitude: lat,
-        longitude: lng,
-      };
-    } catch (error) {
-      // Handle any fetch errors (including timeouts)
-      console.warn('IP geolocation API fetch error:', error.message);
-      return fallbackLocations.default;
-    }
+    // Return the result directly as it's already in the correct format
+    return geoData;
   } catch (error) {
     console.error('IP geolocation error:', error);
     
-    // Always return a valid location to ensure dots appear on the map
+    // Return unknown location in case of errors
     return {
-      country: 'United States',
-      countryCode: 'US',
-      region: 'California',
-      city: 'San Francisco',
-      latitude: 37.7749,
-      longitude: -122.4194,
+      country: 'Unknown',
+      countryCode: 'XX',
+      region: '',
+      city: '',
+      latitude: 0,
+      longitude: 0,
     };
   }
 }
