@@ -281,11 +281,29 @@ export function AnalyticsDashboard({ shortId }) {
               <Card>
                 <CardHeader>
                   <CardTitle>Geographical Distribution</CardTitle>
-                  <CardDescription>Visual representation of clicks by country</CardDescription>
+                  <CardDescription>
+                    Visual representation of clicks by country
+                    {analytics.locationData && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        ({analytics.locationData.length} location points available)
+                      </span>
+                    )}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {Object.keys(analytics.countryStats).length > 0 ? (
-                    <SimpleMap countryStats={analytics.countryStats} />
+                  {(Object.keys(analytics.countryStats).length > 0 || (analytics.locationData && analytics.locationData.length > 0)) ? (
+                    <>
+                      {/* Debug information */}
+                      {process.env.NODE_ENV === 'development' && analytics.locationData && (
+                        <div className="mb-2 p-2 bg-muted/20 text-xs rounded overflow-auto max-h-24">
+                          <p>Location Data Debug: {JSON.stringify(analytics.locationData.slice(0, 2))}</p>
+                        </div>
+                      )}
+                      <SimpleMap 
+                        countryStats={analytics.countryStats} 
+                        locationData={analytics.locationData || []} 
+                      />
+                    </>
                   ) : (
                     <div className="flex items-center justify-center h-[400px] bg-muted/20 rounded-md">
                       <p className="text-muted-foreground">No geographical data available yet</p>

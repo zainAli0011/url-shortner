@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { FallbackMap } from '@/components/fallback-map';
 import { Loader2, ZoomIn, ZoomOut } from 'lucide-react';
@@ -118,7 +118,7 @@ const countryNameMapping = {
 };
 
 // D3 World Map Component
-function D3WorldMap({ countryStats, maxClicks }) {
+function D3WorldMap({ countryStats, locationData = [], maxClicks }) {
   const svgRef = useRef(null);
   const containerRef = useRef(null);
   const [worldData, setWorldData] = useState(null);
@@ -366,11 +366,82 @@ function D3WorldMap({ countryStats, maxClicks }) {
         }
       });
       
+      // Add markers for specific location data from IP addresses
+      if (locationData && locationData.length > 0) {
+        console.log('Location data available:', locationData.length);
+        
+        locationData.forEach((location, index) => {
+          if (location.coordinates && location.coordinates.length === 2) {
+            // Project the coordinates to the map
+            const [longitude, latitude] = location.coordinates;
+            console.log(`Location ${index}:`, longitude, latitude);
+            
+            const position = projection([longitude, latitude]);
+            console.log(`Projected position:`, position);
+            
+            if (position && !isNaN(position[0]) && !isNaN(position[1])) {
+              // Make the real location markers more distinct with a different color scheme
+              // Use blue for real location data to distinguish from country aggregates (red)
+              
+              // Add the main marker (no animations)
+              svg.append('circle')
+                .attr('cx', position[0])
+                .attr('cy', position[1])
+                .attr('r', 5) // Slightly larger than country markers
+                .attr('fill', '#3b82f6') // Blue color for real IP locations
+                .attr('stroke', 'white')
+                .attr('stroke-width', 1.5)
+                .attr('class', 'location-marker')
+                .attr('data-location-index', index)
+                .on('mouseenter', (event) => {
+                  const rect = event.target.getBoundingClientRect();
+                  const svgRect = svgRef.current.getBoundingClientRect();
+                  setTooltipData({ 
+                    country: location.country || 'Unknown',
+                    city: location.city || '',
+                    region: location.region || '',
+                    timestamp: new Date(location.timestamp).toLocaleString(),
+                    isExactLocation: true // Flag to identify this as a precise location
+                  });
+                  setTooltipPosition({
+                    x: rect.left - svgRect.left + rect.width / 2,
+                    y: rect.top - svgRect.top
+                  });
+                })
+                .on('mouseleave', () => {
+                  setTooltipData(null);
+                });
+                
+              // Add a static pulse effect using multiple circles
+              // This avoids the need for SVG animations
+              const sizes = [16, 12, 8];
+              const opacities = [0.1, 0.2, 0.3];
+              
+              sizes.forEach((size, i) => {
+                svg.append('circle')
+                  .attr('cx', position[0])
+                  .attr('cy', position[1])
+                  .attr('r', size)
+                  .attr('fill', '#3b82f6') // Blue color matching the marker
+                  .attr('opacity', opacities[i])
+                  .attr('class', 'pulse-effect-static');
+              });
+            } else {
+              console.warn(`Invalid projected position for coordinates: [${longitude}, ${latitude}]`);
+            }
+          } else {
+            console.warn(`Invalid coordinates format for location ${index}:`, location.coordinates);
+          }
+        });
+      } else {
+        console.log('No location data available');
+      }
+      
     } catch (err) {
       console.error('Error rendering map:', err);
       setError(true);
     }
-  }, [worldData, countryStats, maxClicks, zoom, center]);
+  }, [worldData, countryStats, locationData, maxClicks, zoom, center]);
 
   if (loading) {
     return (
@@ -459,16 +530,82 @@ function D3WorldMap({ countryStats, maxClicks }) {
           }}
         >
           <p className="font-medium">{tooltipData.country}</p>
-          <p>{tooltipData.clicks} {tooltipData.clicks === 1 ? 'click' : 'clicks'}</p>
+          {tooltipData.city && (
+            <p>{tooltipData.city}{tooltipData.region ? `, ${tooltipData.region}` : ''}</p>
+          )}
+          {tooltipData.clicks && (
+            <p>{tooltipData.clicks} {tooltipData.clicks === 1 ? 'click' : 'clicks'}</p>
+          )}
+          {tooltipData.isExactLocation && (
+            <p className="text-xs text-blue-600 mt-1">Exact location from IP</p>
+          )}
+          {tooltipData.timestamp && (
+            <p className="text-xs text-muted-foreground mt-1">{tooltipData.timestamp}</p>
+          )}
         </div>
       )}
     </div>
   );
 }
 
-export function SimpleMap({ countryStats = {} }) {
+export function SimpleMap({ countryStats = {}, locationData = [] }) {
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  
+  // Log the props for debugging
+  useEffect(() => {
+    console.log('SimpleMap props:', { 
+      countryStatsCount: Object.keys(countryStats).length,
+      locationDataCount: locationData?.length 
+    });
+    
+    if (locationData && locationData.length > 0) {
+      console.log('First location data point:', locationData[0]);
+    }
+  }, [countryStats, locationData]);
+  
+  // Add test locations for development if none exists
+  const enhancedLocationData = useMemo(() => {
+    // Only use the real location data if it exists
+    if (locationData && locationData.length > 0) {
+      return locationData;
+    }
+    
+    // Only add test location markers in development mode
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Adding test location markers for development');
+      // Add multiple sample locations for testing
+      return [
+        {
+          country: 'United States',
+          countryCode: 'US',
+          city: 'San Francisco',
+          region: 'California',
+          coordinates: [-122.4194, 37.7749],
+          timestamp: new Date().toISOString()
+        },
+        {
+          country: 'United Kingdom',
+          countryCode: 'GB',
+          city: 'London',
+          region: 'England',
+          coordinates: [-0.1278, 51.5074],
+          timestamp: new Date().toISOString()
+        },
+        {
+          country: 'Japan',
+          countryCode: 'JP',
+          city: 'Tokyo',
+          region: 'Tokyo',
+          coordinates: [139.6503, 35.6762],
+          timestamp: new Date().toISOString()
+        }
+      ];
+    }
+    
+    // For production, return empty array if no location data
+    return [];
+  }, [locationData]);
   
   // Simulate loading
   useEffect(() => {
@@ -491,36 +628,64 @@ export function SimpleMap({ countryStats = {} }) {
     );
   }
   
-  if (hasError || Object.keys(countryStats).length === 0) {
+  // Check if we have any geographic data to display
+  const hasGeoData = Object.keys(countryStats).length > 0 || enhancedLocationData.length > 0;
+  
+  if (hasError || !hasGeoData) {
     return <FallbackMap countryStats={countryStats} />;
   }
   
   // Find the maximum click count for scaling
-  const maxClicks = Math.max(...Object.values(countryStats));
+  const maxClicks = Math.max(...Object.values(countryStats), 1);
   
   return (
     <div className="w-full">
       <Card className="mb-6">
         <CardHeader>
           <CardTitle>World Map View</CardTitle>
+          <CardDescription>
+            {enhancedLocationData.length > 0 
+              ? enhancedLocationData.length === 1
+                ? "One exact location showing on map from IP address (blue marker)"
+                : `Geographic distribution of clicks with precise locations (${enhancedLocationData.length} points)`
+              : "Countries shown by visit count. Precise location data will appear as visitors arrive."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <TooltipProvider>
+            {/* Debug information for development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="mb-2 p-2 bg-muted/20 text-xs rounded">
+                <p>Country Stats: {Object.keys(countryStats).length}</p>
+                <p>Location Points: {enhancedLocationData.length}</p>
+              </div>
+            )}
+            
             <div className="relative w-full h-[400px] rounded-md overflow-hidden border border-muted">
-              <D3WorldMap countryStats={countryStats} maxClicks={maxClicks} />
+              <D3WorldMap 
+                countryStats={countryStats} 
+                locationData={enhancedLocationData} 
+                maxClicks={maxClicks} 
+              />
               
               {/* Add a legend */}
-              <div className="absolute top-2 right-2 bg-white/80 p-2 rounded-md shadow-sm border border-muted text-xs">
+              <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-2 rounded-md shadow-sm border border-muted text-xs">
                 <div className="flex items-center mb-1">
                   <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                  <span>Click locations</span>
+                  <span>Country-level clicks</span>
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center mb-1">
                   <div className="w-2 h-2 rounded-full bg-red-500 mr-1 opacity-60"></div>
                   <div className="w-3 h-3 rounded-full bg-red-500 mx-1"></div>
                   <div className="w-4 h-4 rounded-full bg-red-500 ml-1"></div>
                   <span className="ml-2">Relative volume</span>
                 </div>
+                {enhancedLocationData.length > 0 && (
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-blue-500 mr-2 animate-pulse"></div>
+                    <span>Exact IP locations ({enhancedLocationData.length})</span>
+                  </div>
+                )}
               </div>
             </div>
           </TooltipProvider>
