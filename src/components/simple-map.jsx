@@ -347,6 +347,7 @@ function D3WorldMap({ countryStats, maxClicks }) {
               .attr('class', 'marker')
               .attr('data-country', country)
               .attr('data-clicks', clicks)
+              .attr('id', `marker-${country.replace(/\s+/g, '-').toLowerCase()}`)
               .on('mouseenter', (event) => {
                 const rect = event.target.getBoundingClientRect();
                 const svgRect = svgRef.current.getBoundingClientRect();
@@ -504,23 +505,25 @@ export function SimpleMap({ countryStats = {} }) {
           <CardTitle>World Map View</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="relative w-full h-[400px] rounded-md overflow-hidden border border-muted">
-            <D3WorldMap countryStats={countryStats} maxClicks={maxClicks} />
-            
-            {/* Add a legend */}
-            <div className="absolute top-2 right-2 bg-white/80 p-2 rounded-md shadow-sm border border-muted text-xs">
-              <div className="flex items-center mb-1">
-                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                <span>Click locations</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-2 h-2 rounded-full bg-red-500 mr-1 opacity-60"></div>
-                <div className="w-3 h-3 rounded-full bg-red-500 mx-1"></div>
-                <div className="w-4 h-4 rounded-full bg-red-500 ml-1"></div>
-                <span className="ml-2">Relative volume</span>
+          <TooltipProvider>
+            <div className="relative w-full h-[400px] rounded-md overflow-hidden border border-muted">
+              <D3WorldMap countryStats={countryStats} maxClicks={maxClicks} />
+              
+              {/* Add a legend */}
+              <div className="absolute top-2 right-2 bg-white/80 p-2 rounded-md shadow-sm border border-muted text-xs">
+                <div className="flex items-center mb-1">
+                  <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                  <span>Click locations</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 rounded-full bg-red-500 mr-1 opacity-60"></div>
+                  <div className="w-3 h-3 rounded-full bg-red-500 mx-1"></div>
+                  <div className="w-4 h-4 rounded-full bg-red-500 ml-1"></div>
+                  <span className="ml-2">Relative volume</span>
+                </div>
               </div>
             </div>
-          </div>
+          </TooltipProvider>
         </CardContent>
       </Card>
       

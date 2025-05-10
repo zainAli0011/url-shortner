@@ -22,7 +22,6 @@ import {
 } from 'chart.js';
 import { Pie } from 'react-chartjs-2';
 import { getCode } from 'country-flag-icons';
-import { WorldMap } from '@/components/world-map';
 import { SimpleMap } from '@/components/simple-map';
 
 // Register ChartJS components
